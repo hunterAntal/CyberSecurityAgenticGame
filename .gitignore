@@ -13,3 +13,10 @@
 *.tflite
 *.keras
 *.pdf
+
+# Ignore Python cache artifacts
+__pycache__/
+*.pyc
+
+# Ignore local runtime logs
+*.log
