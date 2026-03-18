@@ -1,7 +1,10 @@
 package game;
 
+import agents.BruteForceAgent;
 import agents.DefenderAgent;
+import agents.MalwarePropagationAgent;
 import agents.MonitoringScoringAgent;
+import agents.PhishingAttackAgent;
 import bridge.GameStateBridge;
 
 import java.util.Random;
@@ -23,6 +26,7 @@ public class GameFlowController implements Runnable {
 
     // ── Per-wave state ─────────────────────────────────────────────────────
     private String currentThreat;
+    private double currentConfidence;
     private boolean helpUsedThisWave;
     private boolean retryThisWave;
 
@@ -115,7 +119,7 @@ public class GameFlowController implements Runnable {
     }
 
     private void startWave() throws InterruptedException {
-        currentThreat = THREATS[RNG.nextInt(THREATS.length)];
+        currentThreat = selectThreat();
         helpUsedThisWave = false;
         retryThisWave = false;
 
@@ -139,8 +143,49 @@ public class GameFlowController implements Runnable {
             }
         }
 
+        bridge.sendDialog("DEFENDER",
+                String.format("Threat confidence: %.1f%%", currentConfidence * 100));
         bridge.sendDialog("DEFENDER", "Available moves: PATCH | SCAN | BLOCK | ANALYZE");
         bridge.sendDialog("DEFENDER", "What is your move, recruit? (Type HELP if you need guidance)");
+    }
+
+    /**
+     * Selects the next threat using ML model confidences as weights.
+     * A small random jitter ensures variety across waves while keeping
+     * selection data-driven (higher confidence → more likely to be chosen).
+     * Falls back to pure random if no agent confidences are available.
+     */
+    private String selectThreat() {
+        PhishingAttackAgent phishing = bridge.getPhishingAgent();
+        BruteForceAgent bruteForce = bridge.getBruteForceAgent();
+        MalwarePropagationAgent malware = bridge.getMalwareAgent();
+
+        double pConf = phishing != null ? phishing.getConfidence() : 0.0;
+        double bConf = bruteForce != null ? bruteForce.getConfidence() : 0.0;
+        double mConf = malware != null ? malware.getConfidence() : 0.0;
+
+        // Fall back to random if all confidences are zero (ML unavailable)
+        if (pConf == 0.0 && bConf == 0.0 && mConf == 0.0) {
+            currentConfidence = 0.0;
+            return THREATS[RNG.nextInt(THREATS.length)];
+        }
+
+        // Add jitter so all three threats appear across waves;
+        // higher-confidence threats remain more likely to be selected
+        double pScore = pConf + RNG.nextDouble() * 0.15;
+        double bScore = bConf + RNG.nextDouble() * 0.15;
+        double mScore = mConf + RNG.nextDouble() * 0.15;
+
+        if (pScore >= bScore && pScore >= mScore) {
+            currentConfidence = pConf;
+            return "PHISHING";
+        } else if (bScore >= pScore && bScore >= mScore) {
+            currentConfidence = bConf;
+            return "BRUTEFORCE";
+        } else {
+            currentConfidence = mConf;
+            return "MALWARE";
+        }
     }
 
     private void handleHelp() throws InterruptedException {

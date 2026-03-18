@@ -1,7 +1,10 @@
 package bridge;
 
+import agents.BruteForceAgent;
 import agents.DefenderAgent;
+import agents.MalwarePropagationAgent;
 import agents.MonitoringScoringAgent;
+import agents.PhishingAttackAgent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import game.GameFlowController;
 import game.GameSummary;
@@ -36,6 +39,9 @@ public class GameStateBridge extends WebSocketServer {
     // ── Agent references ───────────────────────────────────────────────────
     private final AtomicReference<DefenderAgent> defenderAgent = new AtomicReference<>();
     private final AtomicReference<MonitoringScoringAgent> scoringAgent = new AtomicReference<>();
+    private final AtomicReference<PhishingAttackAgent> phishingAgent = new AtomicReference<>();
+    private final AtomicReference<BruteForceAgent> bruteForceAgent = new AtomicReference<>();
+    private final AtomicReference<MalwarePropagationAgent> malwareAgent = new AtomicReference<>();
 
     // ── Active connection & controller ─────────────────────────────────────
     private volatile WebSocket activeConn;
@@ -64,6 +70,30 @@ public class GameStateBridge extends WebSocketServer {
 
     public MonitoringScoringAgent getScoringAgent() {
         return scoringAgent.get();
+    }
+
+    public void registerPhishing(PhishingAttackAgent agent) {
+        phishingAgent.set(agent);
+    }
+
+    public void registerBruteForce(BruteForceAgent agent) {
+        bruteForceAgent.set(agent);
+    }
+
+    public void registerMalware(MalwarePropagationAgent agent) {
+        malwareAgent.set(agent);
+    }
+
+    public PhishingAttackAgent getPhishingAgent() {
+        return phishingAgent.get();
+    }
+
+    public BruteForceAgent getBruteForceAgent() {
+        return bruteForceAgent.get();
+    }
+
+    public MalwarePropagationAgent getMalwareAgent() {
+        return malwareAgent.get();
     }
 
     // ── State written by DefenderAgent ────────────────────────────────────

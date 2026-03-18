@@ -5,12 +5,26 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 BACKEND="$ROOT/backend"
 FRONTEND="$ROOT/frontend/index.html"
 
+# ── Pre-flight: check sklearn is available ────────────────────────────────
+echo "[start] Checking Python/sklearn availability..."
+if ! python3 -c "import sklearn, joblib" 2>/dev/null; then
+  echo ""
+  echo "  *** WARNING: scikit-learn or joblib not found! ***"
+  echo "  ML models will not run and threat confidence will show 0.0%."
+  echo "  Fix before the demo:"
+  echo "    python3 -m pip install scikit-learn joblib"
+  echo ""
+  echo "  Continuing anyway — game will fall back to random threat selection."
+  echo ""
+fi
+
 # ── Build ─────────────────────────────────────────────────────────────────
 echo "[start] Building backend..."
 mvn -f "$BACKEND/pom.xml" package -q
 
 # ── Launch backend ────────────────────────────────────────────────────────
 echo "[start] Starting backend..."
+cd "$ROOT"
 java -cp "$BACKEND/target/cyber-training-game.jar:$BACKEND/target/libs/*" Main \
   > "$ROOT/backend.log" 2>&1 &
 BACKEND_PID=$!
