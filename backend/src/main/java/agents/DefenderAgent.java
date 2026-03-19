@@ -109,10 +109,6 @@ public class DefenderAgent extends Agent {
             default -> false;
         };
 
-        // BLOCK vs MALWARE is "had some effect but not optimal" → we treat as WEAK
-        // (it forces retry with educational feedback per the dialog spec)
-        if (threat.equalsIgnoreCase("MALWARE") && move.equals("BLOCK")) return "WEAK";
-
         return isWeakPairing ? "WEAK" : "NORMAL";
     }
 
