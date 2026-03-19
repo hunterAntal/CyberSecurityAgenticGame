@@ -3,7 +3,22 @@
     "allow": [
       "Bash(java -version)",
       "Bash(mvn compile:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(pip3 install:*)",
+      "Bash(python3 -c \":*)",
+      "Bash(python3 -m ensurepip --upgrade)",
+      "Bash(python3 -m pip install scikit-learn numpy -q)",
+      "Bash(sudo apt-get:*)",
+      "Bash(mvn:*)",
+      "Bash(python3 -c \"import sklearn; print\\(''sklearn'', sklearn.__version__\\)\")",
+      "Bash(python3 -m py_compile backend/predict_phishing.py)",
+      "Bash(python3 -m py_compile backend/predict_bruteforce.py)",
+      "Bash(python3 -m py_compile backend/predict_malware.py)",
+      "Bash(python3 -m pip install scikit-learn -q)",
+      "Read(//home/hunterantal/.local/**)",
+      "Read(//home/hunterantal/**)",
+      "Bash(find /home/hunterantal/Dev/5014_Game_2 -name *.cfg -o -name requirements*.txt)",
+      "Bash(python3:*)"
     ]
   }
 }
