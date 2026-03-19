@@ -18,7 +18,10 @@
       "Read(//home/hunterantal/.local/**)",
       "Read(//home/hunterantal/**)",
       "Bash(find /home/hunterantal/Dev/5014_Game_2 -name *.cfg -o -name requirements*.txt)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(ls -la /home/hunterantal/Dev/5014_Game_2/backend/target/*.jar)",
+      "Bash(javac -version)",
+      "Bash(jar tf:*)"
     ]
   }
 }

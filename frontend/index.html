@@ -126,7 +126,7 @@
   let isTyping  = false;
   const msgQueue = [];        // buffered {type, ...} objects waiting to print
   const CHAR_DELAY = 30;      // ms per character
-  const VALID_CMDS = new Set(['READY','PATCH','SCAN','BLOCK','ANALYZE','HELP','NEXT','FINISH']);
+  const VALID_CMDS = new Set(['READY','PATCH','SCAN','BLOCK','HINT','HELP','NEXT','FINISH']);
 
   // ── WebSocket ─────────────────────────────────────────────────────────────
   function connect() {
@@ -288,7 +288,7 @@
 
     if (!VALID_CMDS.has(raw)) {
       appendLine(
-        '> SYSTEM: Unknown command. Valid commands: PATCH | SCAN | BLOCK | ANALYZE | HELP | NEXT | FINISH',
+        '> SYSTEM: Unknown command. Valid commands: PATCH | SCAN | BLOCK | HINT | HELP | NEXT | FINISH',
         'line-system'
       );
       return;
