@@ -15,14 +15,14 @@ import jade.domain.FIPAException;
 public class DefenderAgent extends Agent {
 
     // ── Move sets ─────────────────────────────────────────────────────────
-    private static final String[] MOVES = {"PATCH", "SCAN", "BLOCK", "ANALYZE"};
+    private static final String[] MOVES = {"PATCH", "SCAN", "BLOCK"};
 
     // ── E(threat_reduction) table ─────────────────────────────────────────
     private double expectedReduction(String move, String threat) {
         return switch (threat.toUpperCase()) {
-            case "PHISHING"   -> move.equals("BLOCK")   ? 1.0 : move.equals("ANALYZE") ? 0.5 : 0.1;
-            case "BRUTEFORCE" -> move.equals("PATCH")   ? 1.0 : move.equals("ANALYZE") ? 0.5 : 0.1;
-            case "MALWARE"    -> move.equals("SCAN")    ? 1.0 : move.equals("ANALYZE") ? 0.5 : 0.1;
+            case "PHISHING"   -> move.equals("BLOCK") ? 1.0 : 0.1;
+            case "BRUTEFORCE" -> move.equals("PATCH") ? 1.0 : 0.1;
+            case "MALWARE"    -> move.equals("SCAN")  ? 1.0 : 0.1;
             default -> 0.1;
         };
     }
@@ -33,7 +33,6 @@ public class DefenderAgent extends Agent {
             case "PATCH"   -> 0.30;
             case "SCAN"    -> 0.10;
             case "BLOCK"   -> 0.20;
-            case "ANALYZE" -> 0.15;
             default -> 1.0;
         };
     }
@@ -44,7 +43,6 @@ public class DefenderAgent extends Agent {
             case "PATCH"   -> 0.05;
             case "SCAN"    -> 0.10;
             case "BLOCK"   -> 0.20;
-            case "ANALYZE" -> 0.02;
             default -> 1.0;
         };
     }
@@ -101,12 +99,7 @@ public class DefenderAgent extends Agent {
         };
         if (superEffective) return "SUPER_EFFECTIVE";
 
-        // ANALYZE is always WEAK; other moves that aren't the super-effective
-        // counter but aren't wrong either count as NORMAL — except the
-        // explicitly-weak pairings and ANALYZE.
-        if (move.equals("ANALYZE")) return "WEAK";
-
-        // Remaining moves that are neither super-effective nor ANALYZE:
+        // Remaining moves that are not super-effective:
         // they do reduce the threat somewhat → NORMAL
         // except the explicitly weak pairings listed in the dialog templates
         boolean isWeakPairing = switch (threat.toUpperCase()) {

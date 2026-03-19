@@ -13,30 +13,35 @@ import java.io.InputStreamReader;
 /**
  * BruteForceAgent — simulates a brute-force credential attack.
  * Registers with the JADE DF under service type "bruteforce-attack".
- * Runs the brute-force ML model at startup and stores the attack confidence.
+ * Runs the brute-force ML model at startup and stores 5 calibrated confidences.
  */
 public class BruteForceAgent extends Agent {
 
-    private double confidence = 0.0;
+    private double[] confidences = new double[5];
 
     @Override
     protected void setup() {
         System.out.println("[BruteForceAgent] Starting up: " + getAID().getName());
 
-        // Run ML model to obtain attack confidence
+        // Run ML model to obtain 5 calibrated attack confidence values
         try {
             ProcessBuilder pb = new ProcessBuilder("python3", "backend/predict_bruteforce.py");
             pb.redirectErrorStream(false);
             Process proc = pb.start();
-            String line = new BufferedReader(new InputStreamReader(proc.getInputStream())).readLine();
-            if (line != null && !line.isBlank()) {
-                confidence = Double.parseDouble(line.trim());
+            BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+            for (int i = 0; i < confidences.length; i++) {
+                String line = reader.readLine();
+                if (line != null && !line.isBlank()) {
+                    confidences[i] = Double.parseDouble(line.trim());
+                }
             }
             proc.waitFor();
         } catch (Exception e) {
             System.err.println("[BruteForceAgent] ML inference failed: " + e.getMessage());
         }
-        System.out.println("[BruteForceAgent] Confidence: " + confidence);
+        System.out.print("[BruteForceAgent] Confidences:");
+        for (double c : confidences) System.out.printf(" %.4f", c);
+        System.out.println();
 
         // Register with JADE DF
         DFAgentDescription dfd = new DFAgentDescription();
@@ -51,15 +56,15 @@ public class BruteForceAgent extends Agent {
             System.err.println("[BruteForceAgent] DF registration failed: " + e.getMessage());
         }
 
-        // Register with bridge so GameFlowController can query confidence
+        // Register with bridge so GameFlowController can query confidences
         GameStateBridge bridge = GameStateBridge.getInstance();
         if (bridge != null) {
             bridge.registerBruteForce(this);
         }
     }
 
-    public double getConfidence() {
-        return confidence;
+    public double[] getConfidences() {
+        return confidences;
     }
 
     @Override

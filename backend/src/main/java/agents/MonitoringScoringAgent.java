@@ -32,12 +32,12 @@ public class MonitoringScoringAgent extends Agent {
     // ── Public API ────────────────────────────────────────────────────────
 
     public synchronized void startSession() {
-        totalXP = 0;
+        totalXP = 500;
         wavesCompleted = 0;
         correctFirstAttempts = 0;
         helpUsedCount = 0;
         sessionActive = true;
-        System.out.println("[MonitoringScoringAgent] Session started.");
+        System.out.println("[MonitoringScoringAgent] Session started. Starting XP=500");
     }
 
     public synchronized void startWave(String threatType) {
@@ -110,13 +110,36 @@ public class MonitoringScoringAgent extends Agent {
 
     // ── Internal math ─────────────────────────────────────────────────────
 
+    /**
+     * Deducts a fraction of the player's current XP on a wrong answer.
+     *
+     * @param fraction the ML confidence value (0.0–1.0) for the current wave
+     * @return the remaining totalXP after deduction (minimum 0)
+     */
+    public synchronized int deductXP(double fraction) {
+        int deduction = Math.max(1, (int)(totalXP * fraction));
+        totalXP = Math.max(0, totalXP - deduction);
+
+        double accuracy = wavesCompleted > 0
+                ? (double) correctFirstAttempts / wavesCompleted
+                : 0.0;
+
+        System.out.printf("[MonitoringScoringAgent] XP deducted: -%d (fraction=%.2f, remaining=%d)%n",
+                deduction, fraction, totalXP);
+
+        GameStateBridge bridge = GameStateBridge.getInstance();
+        if (bridge != null) {
+            bridge.writeScoreState(0, totalXP, wavesCompleted, accuracy);
+        }
+        return totalXP;
+    }
+
     private int computeXP(String effectiveness, boolean helpUsed, boolean isRetry) {
         if (isRetry || helpUsed) return 25;
 
         return switch (effectiveness.toUpperCase()) {
             case "SUPER_EFFECTIVE" -> 150;
             case "NORMAL"          -> 100;
-            case "WEAK"            -> 50;
             default -> 0;
         };
     }

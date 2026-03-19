@@ -27,8 +27,10 @@ public class GameFlowController implements Runnable {
     // ── Per-wave state ─────────────────────────────────────────────────────
     private String currentThreat;
     private double currentConfidence;
+    private int currentSampleIndex;
     private boolean helpUsedThisWave;
     private boolean retryThisWave;
+    private boolean sessionEnded = false;
 
     public GameFlowController(GameStateBridge bridge) {
         this.bridge = bridge;
@@ -50,19 +52,24 @@ public class GameFlowController implements Runnable {
                 }
 
                 MonitoringScoringAgent scoring = bridge.getScoringAgent();
+                sessionEnded = false;
                 if (scoring != null) {
                     scoring.startSession();
                 }
 
-                // Play waves until FINISH
+                // Play waves until FINISH or GAME OVER
                 playSession();
+
+                if (sessionEnded) {
+                    // Game over already handled — wait for READY to play again
+                }
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
     }
 
-    /** Runs waves until the player types FINISH. Returns when session ends. */
+    /** Runs waves until the player types FINISH or XP hits 0. */
     private void playSession() throws InterruptedException {
         while (running) {
             startWave();
@@ -72,11 +79,12 @@ public class GameFlowController implements Runnable {
                 String input = waitForInput();
 
                 switch (input) {
-                    case "HELP" -> handleHelp();
-                    case "PATCH", "SCAN", "BLOCK", "ANALYZE" -> {
+                    case "HELP", "HINT" -> handleHelp();
+                    case "PATCH", "SCAN", "BLOCK" -> {
                         boolean complete = handleMove(input);
                         if (complete) {
                             waveComplete = true;
+                            if (sessionEnded) return;  // game over handled in handleMove
                             String next = waitForNextOrFinish();
                             if ("FINISH".equals(next)) {
                                 handleFinish();
@@ -90,9 +98,11 @@ public class GameFlowController implements Runnable {
                         return; // back to outer loop → waits for READY
                     }
                     default -> bridge.sendDialog("SYSTEM",
-                            "Unknown command. Valid commands: PATCH | SCAN | BLOCK | ANALYZE | HELP | NEXT | FINISH");
+                            "Unknown command. Valid commands: PATCH | SCAN | BLOCK | HINT | HELP | NEXT | FINISH");
                 }
             }
+
+            if (sessionEnded) return;
         }
     }
 
@@ -114,7 +124,7 @@ public class GameFlowController implements Runnable {
         bridge.sendDialog("DEFENDER", "Welcome, recruit. I am DEFENDER.");
         bridge.sendDialog("DEFENDER", "Our network is under attack. Hostile agents are probing our systems.");
         bridge.sendDialog("DEFENDER", "Your mission is to detect these threats and neutralize them before they cause irreversible damage.");
-        bridge.sendDialog("DEFENDER", "You will learn to PATCH vulnerabilities, SCAN for intrusions, BLOCK compromised nodes, and ANALYZE enemy tactics.");
+        bridge.sendDialog("DEFENDER", "You will learn to PATCH vulnerabilities, SCAN for intrusions, BLOCK compromised nodes, and use HINT when you need guidance.");
         bridge.sendDialog("DEFENDER", "Type READY to begin.");
     }
 
@@ -145,47 +155,34 @@ public class GameFlowController implements Runnable {
 
         bridge.sendDialog("DEFENDER",
                 String.format("Threat confidence: %.1f%%", currentConfidence * 100));
-        bridge.sendDialog("DEFENDER", "Available moves: PATCH | SCAN | BLOCK | ANALYZE");
-        bridge.sendDialog("DEFENDER", "What is your move, recruit? (Type HELP if you need guidance)");
+        bridge.sendDialog("DEFENDER", "Available moves: PATCH | SCAN | BLOCK | HINT");
+        bridge.sendDialog("DEFENDER", "What is your move, recruit?");
     }
 
     /**
-     * Selects the next threat using ML model confidences as weights.
-     * A small random jitter ensures variety across waves while keeping
-     * selection data-driven (higher confidence → more likely to be chosen).
-     * Falls back to pure random if no agent confidences are available.
+     * Selects the next threat using pure random selection.
+     * Randomly picks one of the 5 calibrated samples — that sample's confidence
+     * becomes the threat level for this wave.
      */
     private String selectThreat() {
-        PhishingAttackAgent phishing = bridge.getPhishingAgent();
-        BruteForceAgent bruteForce = bridge.getBruteForceAgent();
-        MalwarePropagationAgent malware = bridge.getMalwareAgent();
+        String threat = THREATS[RNG.nextInt(THREATS.length)];
+        currentSampleIndex = RNG.nextInt(5);
 
-        double pConf = phishing != null ? phishing.getConfidence() : 0.0;
-        double bConf = bruteForce != null ? bruteForce.getConfidence() : 0.0;
-        double mConf = malware != null ? malware.getConfidence() : 0.0;
+        double[] confs = getConfidencesForThreat(threat);
+        currentConfidence = (confs != null && confs.length > currentSampleIndex)
+                ? confs[currentSampleIndex]
+                : 0.5;
 
-        // Fall back to random if all confidences are zero (ML unavailable)
-        if (pConf == 0.0 && bConf == 0.0 && mConf == 0.0) {
-            currentConfidence = 0.0;
-            return THREATS[RNG.nextInt(THREATS.length)];
-        }
+        return threat;
+    }
 
-        // Add jitter so all three threats appear across waves;
-        // higher-confidence threats remain more likely to be selected
-        double pScore = pConf + RNG.nextDouble() * 0.15;
-        double bScore = bConf + RNG.nextDouble() * 0.15;
-        double mScore = mConf + RNG.nextDouble() * 0.15;
-
-        if (pScore >= bScore && pScore >= mScore) {
-            currentConfidence = pConf;
-            return "PHISHING";
-        } else if (bScore >= pScore && bScore >= mScore) {
-            currentConfidence = bConf;
-            return "BRUTEFORCE";
-        } else {
-            currentConfidence = mConf;
-            return "MALWARE";
-        }
+    private double[] getConfidencesForThreat(String threat) {
+        return switch (threat) {
+            case "PHISHING"   -> bridge.getPhishingAgent() != null ? bridge.getPhishingAgent().getConfidences() : null;
+            case "BRUTEFORCE" -> bridge.getBruteForceAgent() != null ? bridge.getBruteForceAgent().getConfidences() : null;
+            case "MALWARE"    -> bridge.getMalwareAgent() != null ? bridge.getMalwareAgent().getConfidences() : null;
+            default -> null;
+        };
     }
 
     private void handleHelp() throws InterruptedException {
@@ -224,7 +221,7 @@ public class GameFlowController implements Runnable {
     }
 
     /**
-     * @return true if the wave is now complete (SUPER_EFFECTIVE or NORMAL)
+     * @return true if the wave is now complete (SUPER_EFFECTIVE or NORMAL), or game over
      */
     private boolean handleMove(String move) throws InterruptedException {
         DefenderAgent defender = bridge.getDefenderAgent();
@@ -237,6 +234,15 @@ public class GameFlowController implements Runnable {
 
         if ("WEAK".equals(effectiveness)) {
             sendWeakDialog(move, currentThreat);
+            MonitoringScoringAgent scoring = bridge.getScoringAgent();
+            int remaining = (scoring != null) ? scoring.deductXP(currentConfidence) : 0;
+            if (remaining <= 0) {
+                handleGameOver();
+                sessionEnded = true;
+                return true;  // ends the wave loop
+            }
+            bridge.sendDialog("DEFENDER",
+                    String.format("XP remaining: %d. The attack remains active.", remaining));
             bridge.sendDialog("DEFENDER", "Try again, recruit.");
             retryThisWave = true;
             return false;
@@ -251,12 +257,18 @@ public class GameFlowController implements Runnable {
 
         sendOutcomeDialog(effectiveness, move, currentThreat);
         bridge.sendDialog("DEFENDER", "+" + xpAwarded + " XP");
-
-        // totalXP is updated in bridge.writeScoreState — read it back from scoring
-        // We can re-read via scoring agent or track locally; scoring agent has it
-        // Just re-query it from bridge's last known score (it was set in processOutcome)
         bridge.sendDialog("DEFENDER", "Type NEXT for the next threat or FINISH to end your session.");
         return true;
+    }
+
+    private void handleGameOver() {
+        bridge.sendDialog("DEFENDER", "SYSTEM BREACH. You have been overwhelmed.");
+        bridge.sendDialog("DEFENDER", "The network has fallen. XP depleted.");
+        MonitoringScoringAgent scoring = bridge.getScoringAgent();
+        if (scoring != null) {
+            GameSummary summary = scoring.endSession();
+            bridge.sendGameOver(summary);
+        }
     }
 
     private void sendWeakDialog(String move, String threat) {
@@ -270,9 +282,6 @@ public class GameFlowController implements Runnable {
                 } else if (move.equals("SCAN")) {
                     bridge.sendDialog("DEFENDER", "SCAN had little effect...");
                     bridge.sendDialog("DEFENDER", "PHISHING AGENT is targeting users directly through email. You need to isolate the compromised node.");
-                } else if (move.equals("ANALYZE")) {
-                    bridge.sendDialog("DEFENDER", "ANALYZE revealed useful intelligence but did not neutralize the threat.");
-                    bridge.sendDialog("DEFENDER", "Save ANALYZE for coordinated insider attacks.");
                 }
             }
             case "BRUTEFORCE" -> {
@@ -284,9 +293,6 @@ public class GameFlowController implements Runnable {
                 } else if (move.equals("SCAN")) {
                     bridge.sendDialog("DEFENDER", "SCAN had little effect...");
                     bridge.sendDialog("DEFENDER", "BRUTE FORCE AGENT is using credential attacks, not network intrusion. Patch the vulnerability.");
-                } else if (move.equals("ANALYZE")) {
-                    bridge.sendDialog("DEFENDER", "ANALYZE revealed useful intelligence but did not neutralize the threat.");
-                    bridge.sendDialog("DEFENDER", "Save ANALYZE for coordinated insider attacks.");
                 }
             }
             case "MALWARE" -> {
@@ -298,9 +304,6 @@ public class GameFlowController implements Runnable {
                 } else if (move.equals("BLOCK")) {
                     bridge.sendDialog("DEFENDER", "BLOCK had some effect but was not optimal...");
                     bridge.sendDialog("DEFENDER", "Isolating helps but SCAN would catch the spread pattern earlier and more effectively.");
-                } else if (move.equals("ANALYZE")) {
-                    bridge.sendDialog("DEFENDER", "ANALYZE revealed useful intelligence but did not neutralize the threat.");
-                    bridge.sendDialog("DEFENDER", "Save ANALYZE for coordinated insider attacks.");
                 }
             }
         }
