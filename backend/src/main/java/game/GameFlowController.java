@@ -19,6 +19,10 @@ public class GameFlowController implements Runnable {
 
     private static final String[] THREATS = {"PHISHING", "BRUTEFORCE", "MALWARE"};
     private static final Random RNG = new Random();
+    private static final String[] PHISHING_NODES = {
+        "NODE-01", "NODE-02", "NODE-03", "NODE-04",
+        "NODE-05", "NODE-06", "NODE-07", "NODE-08"
+    };
 
     private final GameStateBridge bridge;
     private final BlockingQueue<String> inputQueue = new LinkedBlockingQueue<>();
@@ -140,7 +144,8 @@ public class GameFlowController implements Runnable {
 
         switch (currentThreat) {
             case "PHISHING" -> {
-                bridge.sendDialog("DEFENDER", "ALERT. PHISHING AGENT detected on NODE-04.");
+                String phishingNode = PHISHING_NODES[RNG.nextInt(PHISHING_NODES.length)];
+                bridge.sendDialog("DEFENDER", "ALERT. PHISHING AGENT detected on " + phishingNode + ".");
                 bridge.sendDialog("DEFENDER", "It is sending spoofed emails to your users, attempting to steal credentials.");
             }
             case "BRUTEFORCE" -> {

@@ -129,7 +129,7 @@ public class MonitoringScoringAgent extends Agent {
 
         GameStateBridge bridge = GameStateBridge.getInstance();
         if (bridge != null) {
-            bridge.writeScoreState(0, totalXP, wavesCompleted, accuracy);
+            bridge.writeScoreState(-deduction, totalXP, wavesCompleted, accuracy);
         }
         return totalXP;
     }

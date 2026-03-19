@@ -244,7 +244,8 @@
     const tot = msg.totalXP;
     const acc = (msg.accuracyRate * 100).toFixed(0);
     const wav = msg.wavesCompleted;
-    const text = `> [+${xp} XP] [Total: ${tot} XP] [Accuracy: ${acc}%] [Waves: ${wav}]`;
+    const xpLabel = xp >= 0 ? `+${xp}` : `${xp}`;
+    const text = `> [${xpLabel} XP] [Total: ${tot} XP] [Accuracy: ${acc}%] [Waves: ${wav}]`;
     appendLine(text, 'line-score');
   }
 
