@@ -244,6 +244,7 @@ public class GameFlowController implements Runnable {
             bridge.sendDialog("DEFENDER",
                     String.format("XP remaining: %d. The attack remains active.", remaining));
             bridge.sendDialog("DEFENDER", "Try again, recruit.");
+            bridge.sendDialog("DEFENDER", "Available moves: PATCH | SCAN | BLOCK | HINT");
             retryThisWave = true;
             return false;
         }

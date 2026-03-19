@@ -124,6 +124,7 @@
   // ── State ─────────────────────────────────────────────────────────────────
   let ws;
   let isTyping  = false;
+  let skipTyping = false;
   const msgQueue = [];        // buffered {type, ...} objects waiting to print
   const CHAR_DELAY = 30;      // ms per character
   const VALID_CMDS = new Set(['READY','PATCH','SCAN','BLOCK','HINT','HELP','NEXT','FINISH']);
@@ -170,6 +171,7 @@
   function drainQueue() {
     if (msgQueue.length === 0) {
       isTyping = false;
+      skipTyping = false;
       setInputEnabled(true);
       return;
     }
@@ -214,6 +216,13 @@
     div.appendChild(cur);
 
     function tick() {
+      if (skipTyping) {
+        div.insertBefore(document.createTextNode(fullText.slice(i)), cur);
+        cur.remove();
+        scrollBottom();
+        done();
+        return;
+      }
       if (i < fullText.length) {
         // Insert character before cursor
         div.insertBefore(document.createTextNode(fullText[i]), cur);
@@ -298,6 +307,12 @@
       ws.send(JSON.stringify({ type: 'PLAYER_INPUT', input: raw }));
     } else {
       appendLine('> SYSTEM: Not connected. Please refresh.', 'line-system');
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && isTyping) {
+      skipTyping = true;
     }
   });
 
