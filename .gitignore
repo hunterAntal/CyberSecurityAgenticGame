@@ -20,3 +20,8 @@ __pycache__/
 
 # Ignore local runtime logs
 *.log
+
+# Ignore large model folders
+/Brute_Force Agent/
+/Malware Model/
+/Phishing_Agent/
