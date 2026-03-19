@@ -104,7 +104,7 @@
 <body>
 <div id="terminal">
   <div id="header">
-    DEFENDER CYBER TRAINING SYSTEM v1.0
+    DEFENDER CYBER TRAINING SYSTEM v1.5
     <span id="ws-status" class="disconnected">● OFFLINE</span>
   </div>
   <div id="output"></div>
@@ -128,9 +128,6 @@
   const msgQueue = [];        // buffered {type, ...} objects waiting to print
   const CHAR_DELAY = 30;      // ms per character
   const VALID_CMDS = new Set(['READY','PATCH','SCAN','BLOCK','HINT','HELP','NEXT','FINISH']);
-  const WAVE_COLOURS = ['#00e5b4', '#ff9f43', '#a29bfe', '#fd79a8', '#74b9ff'];
-  let waveColourIdx  = 0;
-  let lastWavesCompleted = 0;
 
   // ── WebSocket ─────────────────────────────────────────────────────────────
   function connect() {
@@ -209,9 +206,6 @@
 
     const div = document.createElement('div');
     div.className = `line line-${speaker.toLowerCase()}`;
-    if (speaker.toLowerCase() === 'defender') {
-      div.style.color = WAVE_COLOURS[waveColourIdx];
-    }
     output.appendChild(div);
     scrollBottom();
 
@@ -246,14 +240,6 @@
 
   // ── Score update line ─────────────────────────────────────────────────────
   function printScoreUpdate(msg) {
-    // Capture colour for this score line *before* advancing the index
-    const scoreColour = WAVE_COLOURS[waveColourIdx];
-
-    if (msg.wavesCompleted > lastWavesCompleted) {
-      lastWavesCompleted = msg.wavesCompleted;
-      waveColourIdx = (waveColourIdx + 1) % WAVE_COLOURS.length;
-    }
-
     const xp  = msg.xpAwarded;
     const tot = msg.totalXP;
     const acc = (msg.accuracyRate * 100).toFixed(0);

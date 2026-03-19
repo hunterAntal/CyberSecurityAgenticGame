@@ -27,3 +27,12 @@ backend/    Java WebSocket server + game logic
 frontend/   Single-page HTML/JS/CSS client
 start.sh    One-command launcher
 ```
+
+
+
+
+
+
+
+## If game Isnt loading
+kill $(lsof -t -i:1099) 2>/dev/null
