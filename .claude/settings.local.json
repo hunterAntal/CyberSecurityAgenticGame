@@ -21,7 +21,8 @@
       "Bash(python3:*)",
       "Bash(ls -la /home/hunterantal/Dev/5014_Game_2/backend/target/*.jar)",
       "Bash(javac -version)",
-      "Bash(jar tf:*)"
+      "Bash(jar tf:*)",
+      "Bash(lsof:*)"
     ]
   }
 }

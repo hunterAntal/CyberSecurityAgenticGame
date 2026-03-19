@@ -59,6 +59,7 @@ public class GameFlowController implements Runnable {
                 sessionEnded = false;
                 if (scoring != null) {
                     scoring.startSession();
+                    bridge.writeScoreState(0, 500, 0, 0.0);
                 }
 
                 // Play waves until FINISH or GAME OVER

@@ -22,6 +22,14 @@ fi
 echo "[start] Building backend..."
 mvn -f "$BACKEND/pom.xml" package -q
 
+# ── Kill any stale process on port 8887 ──────────────────────────────────
+STALE=$(lsof -ti :8887 2>/dev/null || true)
+if [ -n "$STALE" ]; then
+  echo "[start] Killing stale process on port 8887 (PID $STALE)..."
+  kill "$STALE" 2>/dev/null || true
+  sleep 0.5
+fi
+
 # ── Launch backend ────────────────────────────────────────────────────────
 echo "[start] Starting backend..."
 cd "$ROOT"
