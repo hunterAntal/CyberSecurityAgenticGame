@@ -140,10 +140,7 @@ Architecture diagrams are in [`docs/`](docs/).
 ├── frontend/
 │   └── index.html                           # Complete frontend (single file)
 ├── docs/                                    # Architecture diagrams
-├── slides/
-│   └── xp-system.md                        # XP scoring detail
 ├── AGILE.md                                 # Sprint history (4 sprints, 36 points)
-├── CLAUDE.md                                # Developer reference
 └── start.sh                                 # One-command launcher
 ```
 
@@ -151,9 +148,7 @@ Architecture diagrams are in [`docs/`](docs/).
 
 ## Development
 
-- **Agent architecture & game loop details:** [`CLAUDE.md`](CLAUDE.md)
 - **Sprint history & user stories:** [`AGILE.md`](AGILE.md)
-- **XP scoring breakdown:** [`slides/xp-system.md`](slides/xp-system.md)
 
 ```bash
 mvn -f backend/pom.xml compile   # Compile check
