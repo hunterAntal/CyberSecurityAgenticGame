@@ -25,3 +25,23 @@ __pycache__/
 /Brute_Force Agent/
 /Malware Model/
 /Phishing_Agent/
+
+# Build artifacts
+backend/target/
+
+# JADE runtime files
+APDescription.txt
+MTPs-Main-Container.txt
+
+# macOS metadata
+.DS_Store
+
+# Local IDE config
+.claude/
+CLAUDE.md
+
+# Raw screen recordings
+*.mp4
+
+# Academic report content
+slides/

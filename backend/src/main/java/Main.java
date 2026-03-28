@@ -51,5 +51,11 @@ public class Main {
 
         System.out.println("[Main] All agents started. Open frontend/index.html to play.");
         System.out.println("[Main] WebSocket listening on ws://localhost:8887");
+
+        // Cleanly release the WebSocket port on Ctrl-C / SIGTERM
+        java.lang.Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("[Main] Shutting down...");
+            try { bridge.stop(1000); } catch (Exception e) { /* ignore */ }
+        }, "shutdown-hook"));
     }
 }

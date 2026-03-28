@@ -52,6 +52,7 @@ public class GameStateBridge extends WebSocketServer {
     // ── Constructor ────────────────────────────────────────────────────────
     public GameStateBridge(int port) {
         super(new InetSocketAddress(port));
+        setReuseAddr(true);
         instance = this;
     }
 
